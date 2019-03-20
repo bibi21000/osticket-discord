@@ -5,12 +5,13 @@ php:
   - '7.0'
   - '7.2'
 env:
-  - OSTICKET_VERSION="v1.9.51"
+  - OSTICKET_VERSION="v1.9.15"
   - OSTICKET_VERSION="v1.10.5"
   - OSTICKET_VERSION="v1.11"
-
 before_script:
   - curl -sSfL -o ~/.phpenv/versions/hhvm/bin/phpunit https://phar.phpunit.de/phpunit-5.7.phar
   - wget https://github.com/osTicket/osTicket/releases/download/${OSTICKET_VERSION}/osTicket-${OSTICKET_VERSION}.zip
   - unzip osTicket-${OSTICKET_VERSION}.zip
   - mv osTicket-${OSTICKET_VERSION}.zip osTiket
+  - cp -Rf plugin osTicket/include/plugins/
+
