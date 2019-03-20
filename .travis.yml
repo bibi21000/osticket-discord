@@ -14,7 +14,7 @@ before_script:
   - unzip osTicket-${OSTICKET_VERSION}.zip
   - mv osTicket-${OSTICKET_VERSION}.zip osTicket
   - ls osTicket
-  - ls osTicket/upload
+  - ls upload
   - ls osTicket/upload/include
   - ls osTicket/upload/include/plugins
   - cp -Rf plugin osTicket/upload/include/plugins/
