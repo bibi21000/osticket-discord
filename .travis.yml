@@ -13,5 +13,8 @@ before_script:
   - wget https://github.com/osTicket/osTicket/releases/download/${OSTICKET_VERSION}/osTicket-${OSTICKET_VERSION}.zip
   - unzip osTicket-${OSTICKET_VERSION}.zip
   - mv osTicket-${OSTICKET_VERSION}.zip osTiket
-  - cp -Rf plugin osTicket/upload/include/plugins/
-
+  - ls osTicket
+  - ls osTicket/upload
+  - ls osTicket/upload/include
+  - ls osTicket/upload/include/plugins
+  - cp -Rf plugin osTiket/upload/include/plugins/
