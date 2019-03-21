@@ -15,4 +15,5 @@ before_script:
   - cp -Rf plugin upload/include/plugins/
   - ls /home/travis/build/bibi21000/osticket-discord/upload/include/plugins/
 script:
-  - phpunit tests/
+  - phpunit --configuration phpunit.xml --coverage-text
+
