@@ -1,5 +1,5 @@
 <?php
-require_once('../upload/include/plugins'. 'class.format.php');
+require_once('../upload/include/plugins'. 'discord.php');
 
 class PluginTests extends PHPUnit_Framework_TestCase
 {
