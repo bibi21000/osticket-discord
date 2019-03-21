@@ -1,5 +1,5 @@
 <?php
-require_once('../upload/include/plugins/'. 'discord.php');
+require_once('/home/travis/build/bibi21000/osticket-discord/upload/include/plugins/'. 'discord.php');
 
 class PluginTests extends PHPUnit_Framework_TestCase
 {
