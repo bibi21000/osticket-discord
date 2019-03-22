@@ -15,6 +15,7 @@ before_script:
   - cp -Rf plugin upload/include/plugins/
   - ls /home/travis/build/bibi21000/osticket-discord/upload/include/
   - ls /home/travis/build/bibi21000/osticket-discord/upload/include/plugins/
+  - ls /home/travis/build/bibi21000/osticket-discord/upload/include/plugins/plugin/
   - cat phpunit.xnl
 script:
   - phpunit --configuration phpunit.xnl --coverage-text
