@@ -2,7 +2,7 @@
 
 <phpunit bootstrap="tests/bootstrap.php" colors="true">
     <php>
-        <var name="INCLUDE_DIR" value="/home/travis/build/bibi21000/osticket-discord/upload/include/"/>
+        <const name="INCLUDE_DIR" value="/home/travis/build/bibi21000/osticket-discord/upload/include/"/>
         <var name="db_dsn" value="mysql:dbname=hello_world_test;host=localhost"/>
         <var name="db_username" value="root"/>
         <var name="db_password" value=""/>
