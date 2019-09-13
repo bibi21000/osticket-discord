@@ -7,10 +7,12 @@ Originally forked from: [https://github.com/thammanna/osticket-slack](https://gi
 
 Info
 ----
-This plugin uses CURL and was designed/tested with osTicket-1.10.1
+- send notifications on ticket created
+- manage alerts : tickets where no user interaction is needed
 
 ## Requirements
 - php_curl
+- osTicket-1.12
 - A discord account
 
 ## Install
@@ -26,4 +28,4 @@ This plugin uses CURL and was designed/tested with osTicket-1.10.1
 - Right click on your server in discord software
 - Select "Server parameters / Webhooks"
 - Create a new webhook
-- Copy the Webhook URL entirely, paste this into the `osTicket -> Admin -> Plugin -> Slack` config admin screen.
+- Copy the Webhook URL entirely, paste this into the `osTicket -> Admin -> Plugin -> Discord Notifier` config admin screen.
