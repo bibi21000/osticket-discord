@@ -194,34 +194,89 @@ class DiscordPlugin extends Plugin {
         }
 
         if ($this->getConfig()->get('reminder-active')) {
-    
-                $sql = "SELECT `ticket_id` FROM `".TICKET_TABLE."`
-                    WHERE status_id IN ( SELECT id FROM `".TICKET_STATUS_TABLE."` WHERE state='open';)
-                      AND DATE_ADD(created, INTERVAL " . $this->getConfig()->get('reminder-delay') ."  MINUTE) < NOW() 
-                    ORDER BY `ticket_id` DESC LIMIT 10";
-                   //   AND DATE_ADD(created, INTERVAL " . $this->getConfig()->get('alert-delay') ."  MINUTE) < NOW() > 
 
-                if (!($res = db_query_unbuffered($sql, $auto_create))) {
+            if (in_array(strval(date('w')), explode(',', $this->getConfig()->get('reminder-days')))) {
+                //A working day
+		if ( $this->getConfig()->get('reminder-lastrun') == '') {
+                    $st = new DateTime();
+		    $this->getConfig()->set('reminder-lastrun', $st->format('Y-m-d H:i'));
+		}
+                $dtz = new DateTimeZone($cfg->getTimezone());
+                $start_day = new DateTime( sprintf('%s', $this->getConfig()->get('reminder-start')) );
+                $stop_day = new DateTime( sprintf('%s', $this->getConfig()->get('reminder-stop')) );
+                $now = new DateTime();
+                $ost->logDebug(_S('Discord plugin'),
+                   sprintf(_S('Work day from %s to %s and we are %s'), 
+                   $start_day->format('Y-m-d H:i'), $stop_day->format('Y-m-d H:i'), $now->format('Y-m-d H:i')
+		   ));
+                if ( $now > $start_day and $now<$stop_day ) {
+                    $last_run = new Datetime($this->getConfig()->get('reminder-lastrun'), $dtz);
+                    $next_run = new Datetime($this->getConfig()->get('reminder-lastrun'), $dtz);
+                    $delay = intval($this->getConfig()->get('reminder-timer'));
+                    if ( $delay < 1 ) $delay = 15;
+                    $next_run->add(new DateInterval(sprintf('PT%sM',$delay)));
+                    $ost->logDebug(_S('Discord plugin'),
+                       sprintf(_S('Last run %s and next %s and we are %s'),$last_run->format('Y-m-d H:i'), $next_run->format('Y-m-d H:i'), $now->format('Y-m-d H:i') 
+	            ));
+
+                    if ($now > $next_run) {
+
+                       if ($last_run < $start_day) {
+                            //First message of day
+                            $this->onReminderHey($title='Hi guys', $description='I hope I would not have to come back today');
+                            $this->getConfig()->set('reminder-lastrun', $start_day);
+                            $ost->logDebug(_S('Discord plugin'),
+                                 _S('Send hi messge') 
+	                    );
+                       } else if ($next_run > $stop_day) {
+                            //Last message of day
+                            $this->onReminderHey($title='Bye guys', $description='Wish you a good evening');
+                            $this->getConfig()->set('reminder-lastrun', $now);
+                            $ost->logDebug(_S('Discord plugin'),
+                                 _S('Send bye messge') 
+	                    );
+                       } else {
+                            $ost->logDebug(_S('Discord plugin'),
+                                 _S('Send ticket message') 
+	                    );
+
+                            $sql = "SELECT `ticket_id` FROM `".TICKET_TABLE."`
+                                WHERE status_id IN ( SELECT id FROM `".TICKET_STATUS_TABLE."` WHERE state='open')
+                                  AND DATE_ADD(created, INTERVAL " . $this->getConfig()->get('reminder-delay') ."  MINUTE) < NOW() 
+                                  AND isanswered = 0  
+                                ORDER BY `ticket_id` DESC LIMIT 10";
+                               //   AND DATE_ADD(created, INTERVAL " . $this->getConfig()->get('alert-delay') ."  MINUTE) < NOW() > 
+
+                            if (!($res = db_query_unbuffered($sql, $auto_create))) {
+                                    $ost->logDebug(_S('Discord plugin'),
+                                        _S('Error in select for tickets for reminder'));
+                                return false;
+                            }
+
+                            $this->onReminderTickets($res);
+                            $this->getConfig()->set('reminder-lastrun', $now);
+                        }
+                    } else {
                         $ost->logDebug(_S('Discord plugin'),
-                            _S('Error in select for tickets for reminder'));
-                    return false;
-                }
+                           _S('Need wait to check') 
+	                );
 
-                $this->onReminder($res);
-
+                    }
+		}
+            }
         }
 
     }
 
-    function onReminder($res){
+    function onReminderTickets($res){
         global $ost, $cfg;
         $nb = 0;
         try {
             while ($row = db_fetch_row($res)) {
                 if (!($ticket = Ticket::lookup($row[0])))
                     continue;
-                $ost->logDebug(_S('Discord plugin'),
-                    sprintf(_S('Matching ticket %s for reminder'), $ticket->ticket_id));
+                //$ost->logDebug(_S('Discord plugin'),
+                //    sprintf(_S('Matching ticket %s for reminder'), $ticket->ticket_id));
                 $fields[$nb]['name'] = sprintf('%s (%s)', $ticket->getEmail()->getName(), $ticket->getEmail());
                 $fields[$nb]['value'] = $ticket->getSubject();
                 $fields[$nb]['inline'] = true;
@@ -230,16 +285,16 @@ class DiscordPlugin extends Plugin {
         
             if ( $nb == 0 ) {
                 $ost->logDebug(_S('Discord plugin'),
-                               _S('Nothing to remindd. Exiting'));
+                               _S('Nothing to remind. Exiting'));
                 return;
             }
             
-            $author['name'] = sprintf('%s', 'Reminder');
+            $author['name'] = sprintf('%s', $this->getConfig()->get('reminder-surname'));
            
             $embeds[0]['author'] = $author;
             $embeds[0]['type'] = 'rich';
             $embeds[0]['color'] = 0xff0000;
-            $embeds[0]['title'] = sprintf('You will hate me %s !!! I\'m %s','guys','your reminder');
+            $embeds[0]['title'] = sprintf('You will hate me %s !!! I\'m %s','guys',$this->getConfig()->get('reminder-surname'));
             $embeds[0]['url'] = $cfg->getUrl() . 'scp/tickets.php';
             $embeds[0]['description'] = sprintf('I just look at your tickets %s ...  And you are late !!!','guys');
             $embeds[0]['fields'] = $fields;
@@ -248,8 +303,32 @@ class DiscordPlugin extends Plugin {
             $this->discordMessage($payload);
 
            
+        } catch(Exception $e) {
+            error_log(sprintf('Error onReminder to Discord Webhook. %s', $e->getMessage()));
+            $ost->logError(_S('Discord plugin'),
+                           sprintf(_S('Error onReminder to Discord Webhook. %s'), 
+                           $e->getMessage()));
         }
-        catch(Exception $e) {
+    }
+    
+    function onReminderHey($title='Hi guys', $description='I hope I would not have to come back today'){
+        global $ost, $cfg;
+        try {
+         
+            $author['name'] = sprintf('%s', $this->getConfig()->get('reminder-surname'));
+           
+            $embeds[0]['author'] = $author;
+            $embeds[0]['type'] = 'rich';
+            $embeds[0]['color'] = 0x00ff00;
+            $embeds[0]['title'] = $title;
+            $embeds[0]['url'] = $cfg->getUrl() . 'scp/tickets.php';
+            $embeds[0]['description'] = $description;
+            $payload['embeds'] = $embeds;
+
+            $this->discordMessage($payload);
+
+           
+        } catch(Exception $e) {
             error_log(sprintf('Error onReminder to Discord Webhook. %s', $e->getMessage()));
             $ost->logError(_S('Discord plugin'),
                            sprintf(_S('Error onReminder to Discord Webhook. %s'), 

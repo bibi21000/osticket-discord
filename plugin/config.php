@@ -75,14 +75,67 @@ class DiscordPluginConfig extends PluginConfig {
                 'hint'    => 'Send a discord notification for unclosed tickets.',
                 'default' => FALSE,
             )),
-            'reminder-delay' => new TextboxField(array(
-                'label'   => 'The delay before sending notifications.',
-                'hint'    => 'The delay in minutes before sending notifications.',
+            'reminder-surname' => new TextboxField(array(
+                'label'   => 'The surname of the reminder.',
+                'hint'    => 'The surname of the reminder.',
+                'configuration' => array(
+                    'size' => 50,
+                    'length' => 50,
+                ),
+                'default' => "Chief Sergeant Chaudard",
+            )),
+            'reminder-age' => new TextboxField(array(
+                'label'   => 'The age of tickets before sending notifications.',
+                'hint'    => 'The age of tickets in minutes before sending notifications.',
                 'configuration' => array(
                     'size' => 5,
                     'length' => 5,
                 ),
                 'default' => 0,
+            )),
+            'reminder-timer' => new TextboxField(array(
+                'label'   => 'The delay between 2 runs.',
+                'hint'    => 'The delay in minutes between 2 runs.',
+                'configuration' => array(
+                    'size' => 5,
+                    'length' => 5,
+                ),
+                'default' => 60,
+            )),
+            'reminder-lastrun' => new DatetimeField(array(
+                'label'   => 'Datetime of the last run.',
+                'hint'    => 'Date and time of the last run.',
+                'configuration' => array(
+                    'size' => 25,
+                    'length' => 25,
+                ),
+            )),
+            'reminder-start' => new TextboxField(array(
+                'label'   => 'Hour to start the remindner.',
+                'hint'    => 'Hour (hh:mm) to start the reminder.',
+                'configuration' => array(
+                    'size' => 10,
+                    'length' => 10,
+                ),
+                'default' =>"9:30",
+            )),
+            'reminder-stop' => new TextboxField(array(
+                'label'   => 'Hour to stop the remindner.',
+                'hint'    => 'Hour (hh:mm) to stop the reminder.',
+                'configuration' => array(
+                    'size' => 10,
+                    'length' => 10,
+                ),
+                'default' =>"18:00",
+            )),
+            'reminder-days' => new TextboxField(array(
+                'label'   => 'Days of the week to run the reminder.',
+                'hint'    => 'Days of the week (from 0 to 6, 0=Sunday, ...) to run the reminder (in a list separted by ,).',
+                'configuration' => array(
+                    'size' => 15,
+                    'length' => 15,
+                ),
+                'default' =>"1,2,3,4,5",
             )),
 
         );
