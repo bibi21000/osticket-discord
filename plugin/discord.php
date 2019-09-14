@@ -167,32 +167,94 @@ class DiscordPlugin extends Plugin {
      */
     function onCron() {
         global $ost, $cfg;
-       if ($this->getConfig()->get('alert-active') and
+        if ($this->getConfig()->get('alert-active') and
             intval($this->getConfig()->get('alert-delay'))>0) {
     
-            $sql = "SELECT `ticket_id` FROM `".TICKET_TABLE."`
-                WHERE dept_id = " . $this->getConfig()->get('alert-dept_id') . "
-                  AND status_id != " . $this->getConfig()->get('alert-status_id') . "  
-                  AND DATE_ADD(created, INTERVAL " . $this->getConfig()->get('alert-delay') ."  MINUTE) < NOW() 
-                ORDER BY `ticket_id` DESC LIMIT 10";
-               //   AND DATE_ADD(created, INTERVAL " . $this->getConfig()->get('alert-delay') ."  MINUTE) < NOW() > 
+                $sql = "SELECT `ticket_id` FROM `".TICKET_TABLE."`
+                    WHERE dept_id = " . $this->getConfig()->get('alert-dept_id') . "
+                      AND status_id != " . $this->getConfig()->get('alert-status_id') . "  
+                      AND DATE_ADD(created, INTERVAL " . $this->getConfig()->get('alert-delay') ."  MINUTE) < NOW() 
+                    ORDER BY `ticket_id` DESC LIMIT 10";
+                   //   AND DATE_ADD(created, INTERVAL " . $this->getConfig()->get('alert-delay') ."  MINUTE) < NOW() > 
+
+                if (!($res = db_query_unbuffered($sql, $auto_create))) {
+                        $ost->logDebug(_S('Discord plugin'),
+                            _S('Error in select for tickets for alert'));
+                    return false;
+                }
+
+                while ($row = db_fetch_row($res)) {
+                    if (!($ticket = Ticket::lookup($row[0])))
+                        continue;
+                    $ost->logDebug(_S('Discord plugin'),
+                        sprintf(_S('Matching ticket %s'), $ticket->ticket_id));
+
+                    $ticket->setStatus($this->getConfig()->get('alert-status_id'), $comments='Closed by discord-notifier');
+                }
+        }
+
+        if ($this->getConfig()->get('reminder-active')) {
     
-            if (!($res = db_query_unbuffered($sql, $auto_create))) {
-                $ost->logDebug(_S('Discord plugin'),
-                        _S('Error in select for tickets'));
-                return false;
-             }
+                $sql = "SELECT `ticket_id` FROM `".TICKET_TABLE."`
+                    WHERE status_id IN ( SELECT id FROM `".TICKET_STATUS_TABLE."` WHERE state='open';)
+                      AND DATE_ADD(created, INTERVAL " . $this->getConfig()->get('reminder-delay') ."  MINUTE) < NOW() 
+                    ORDER BY `ticket_id` DESC LIMIT 10";
+                   //   AND DATE_ADD(created, INTERVAL " . $this->getConfig()->get('alert-delay') ."  MINUTE) < NOW() > 
 
-           while ($row = db_fetch_row($res)) {
-                if (!($ticket = Ticket::lookup($row[0])))
-                    continue;
-                $ost->logDebug(_S('Discord plugin'),
-                    sprintf(_S('Matching ticket %s'), $ticket->ticket_id));
+                if (!($res = db_query_unbuffered($sql, $auto_create))) {
+                        $ost->logDebug(_S('Discord plugin'),
+                            _S('Error in select for tickets for reminder'));
+                    return false;
+                }
 
-                $ticket->setStatus($this->getConfig()->get('alert-status_id'), $comments='Closed by discord-notifier');
-            }
+                $this->onReminder($res);
 
         }
 
     }
+
+    function onReminder($res){
+        global $ost, $cfg;
+        $nb = 0;
+        try {
+            while ($row = db_fetch_row($res)) {
+                if (!($ticket = Ticket::lookup($row[0])))
+                    continue;
+                $ost->logDebug(_S('Discord plugin'),
+                    sprintf(_S('Matching ticket %s for reminder'), $ticket->ticket_id));
+                $fields[$nb]['name'] = sprintf('%s (%s)', $ticket->getEmail()->getName(), $ticket->getEmail());
+                $fields[$nb]['value'] = $ticket->getSubject();
+                $fields[$nb]['inline'] = true;
+                $nb += 1;
+            }
+        
+            if ( $nb == 0 ) {
+                $ost->logDebug(_S('Discord plugin'),
+                               _S('Nothing to remindd. Exiting'));
+                return;
+            }
+            
+            $author['name'] = sprintf('%s', 'Reminder');
+           
+            $embeds[0]['author'] = $author;
+            $embeds[0]['type'] = 'rich';
+            $embeds[0]['color'] = 0xff0000;
+            $embeds[0]['title'] = sprintf('You will hate me %s !!! I\'m %s','guys','your reminder');
+            $embeds[0]['url'] = $cfg->getUrl() . 'scp/tickets.php';
+            $embeds[0]['description'] = sprintf('I just look at your tickets %s ...  And you are late !!!','guys');
+            $embeds[0]['fields'] = $fields;
+            $payload['embeds'] = $embeds;
+
+            $this->discordMessage($payload);
+
+           
+        }
+        catch(Exception $e) {
+            error_log(sprintf('Error onReminder to Discord Webhook. %s', $e->getMessage()));
+            $ost->logError(_S('Discord plugin'),
+                           sprintf(_S('Error onReminder to Discord Webhook. %s'), 
+                           $e->getMessage()));
+        }
+    }
+
 }

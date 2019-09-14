@@ -67,6 +67,23 @@ class DiscordPluginConfig extends PluginConfig {
                     array(0 => '— '.'Status to use'.' —')
                     + TicketStatusList::getStatuses()->all(),
             )),
+            'Reminder' => new SectionBreakField(array(
+                'label' => 'Reminder',
+            )),
+            'reminder-active' => new BooleanField(array(
+                'label'   => 'Activate the reminder.',
+                'hint'    => 'Send a discord notification for unclosed tickets.',
+                'default' => FALSE,
+            )),
+            'reminder-delay' => new TextboxField(array(
+                'label'   => 'The delay before sending notifications.',
+                'hint'    => 'The delay in minutes before sending notifications.',
+                'configuration' => array(
+                    'size' => 5,
+                    'length' => 5,
+                ),
+                'default' => 0,
+            )),
 
         );
     }
