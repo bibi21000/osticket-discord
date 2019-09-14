@@ -7,8 +7,9 @@ Originally forked from: [https://github.com/thammanna/osticket-slack](https://gi
 
 Info
 ----
-- send notifications on ticket created
-- manage alerts : tickets where no user interaction is needed
+- Send notifications on ticket created
+- Manage alerts : tickets automatically closed
+- Reminder : tickets not answered are regulary displayed
 
 ## Requirements
 - php_curl
