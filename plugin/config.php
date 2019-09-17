@@ -102,7 +102,7 @@ class DiscordPluginConfig extends PluginConfig {
                 ),
                 'default' => 60,
             )),
-            'reminder-lastrun' => new DatetimeField(array(
+            'reminder-lastrun' => new TextboxField(array(
                 'label'   => 'Datetime of the last run.',
                 'hint'    => 'Date and time of the last run.',
                 'configuration' => array(
