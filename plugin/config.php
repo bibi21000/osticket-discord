@@ -93,6 +93,15 @@ class DiscordPluginConfig extends PluginConfig {
                 ),
                 'default' => 0,
             )),
+            'reminder-number' => new TextboxField(array(
+                'label'   => 'The number of tickets to send in notifications.',
+                'hint'    => 'The number of tickets to send in notifications.',
+                'configuration' => array(
+                    'size' => 5,
+                    'length' => 5,
+                ),
+                'default' => 5,
+            )),
             'reminder-timer' => new TextboxField(array(
                 'label'   => 'The delay between 2 runs.',
                 'hint'    => 'The delay in minutes between 2 runs.',

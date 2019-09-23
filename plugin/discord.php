@@ -173,6 +173,7 @@ class DiscordPlugin extends Plugin {
                 $sql = "SELECT `ticket_id` FROM `".TICKET_TABLE."`
                     WHERE dept_id = " . $this->getConfig()->get('alert-dept_id') . "
                       AND status_id != " . $this->getConfig()->get('alert-status_id') . "  
+                      AND closed != NULL
                       AND DATE_ADD(created, INTERVAL " . $this->getConfig()->get('alert-delay') ."  MINUTE) < NOW() 
                     ORDER BY `ticket_id` DESC LIMIT 10";
                    //   AND DATE_ADD(created, INTERVAL " . $this->getConfig()->get('alert-delay') ."  MINUTE) < NOW() > 
@@ -217,14 +218,17 @@ class DiscordPlugin extends Plugin {
 		   ));
                 if ( $now > $start_day and $now<$stop_day ) {
                     $last_run = new Datetime($this->getConfig()->get('reminder-lastrun'), $dtz );
-                    $next_run = new Datetime($this->getConfig()->get('reminder-lastrun'), $dtz );
-                    $delay = intval($this->getConfig()->get('reminder-timer'));
-                    if ( $delay < 1 ) $delay = 15;
-                    $next_run->add(new DateInterval(sprintf('PT%sM',$delay)));
+                    if ( $last_run == $start_day ) {
+                        $next_run = new Datetime($this->getConfig()->get('reminder-lastrun'), $dtz );
+                    } else {
+                        $next_run = new Datetime($this->getConfig()->get('reminder-lastrun'), $dtz );
+                        $delay = intval($this->getConfig()->get('reminder-timer'));
+                        if ( $delay < 1 ) $delay = 15;
+                        $next_run->add(new DateInterval(sprintf('PT%sM',$delay)));
+                    }
                     $ost->logDebug(_S('Discord plugin'),
-                       sprintf(_S('Last run %s and next %s and we are %s'),$last_run->format('Y-m-d H:i'), $next_run->format('Y-m-d H:i'), $now->format('Y-m-d H:i') 
+                            sprintf(_S('Last run %s and next %s and we are %s'),$last_run->format('Y-m-d H:i'), $next_run->format('Y-m-d H:i'), $now->format('Y-m-d H:i') 
 	            ));
-
                     if ($now > $next_run) {
 
                        if ($last_run < $start_day) {
@@ -239,7 +243,19 @@ class DiscordPlugin extends Plugin {
                             $ost->logDebug(_S('Discord plugin'),
                                  _S('Send hi messge') 
 	                    );
-                      } else {
+                       } else if ($next_run > $stop_day and $last_run != $stop_day) {
+                            //Last message of day
+                            $this->onReminderHey($title='Bye guys', $description='Wish you a good evening');
+                            $ost->logDebug(_S('Discord plugin'),
+                               sprintf( _S('Update lastrun from %s to %s'),
+                                   $last_run->format('Y-m-d H:i'), $stop_day->format('Y-m-d H:i') 
+                            ));
+
+                            $this->getConfig()->set('reminder-lastrun', $stop_day->format('Y-m-d H:i'));
+                            $ost->logDebug(_S('Discord plugin'),
+                                 _S('Send bye messge') 
+	                    );
+                       } else {
                             $ost->logDebug(_S('Discord plugin'),
                                  _S('Send ticket message') 
 	                    );
@@ -248,7 +264,7 @@ class DiscordPlugin extends Plugin {
                                 WHERE status_id IN ( SELECT id FROM `".TICKET_STATUS_TABLE."` WHERE state='open')
                                   AND DATE_ADD(created, INTERVAL " . $this->getConfig()->get('reminder-delay') ."  MINUTE) < NOW() 
                                   AND isanswered = 0  
-                                ORDER BY `created` DESC LIMIT 10";
+                                ORDER BY `created` DESC LIMIT " . $this->getConfig()->get('reminder-number') . ";";
                                //   AND DATE_ADD(created, INTERVAL " . $this->getConfig()->get('alert-delay') ."  MINUTE) < NOW() > 
 
                             if (!($res = db_query_unbuffered($sql, $auto_create))) {
@@ -265,19 +281,7 @@ class DiscordPlugin extends Plugin {
 
                            $this->getConfig()->set('reminder-lastrun', $now->format('Y-m-d H:i'));
                         }
-                    } else if ($next_run > $stop_day ) {
-                        //Last message of day
-                        $this->onReminderHey($title='Bye guys', $description='Wish you a good evening');
-                        $ost->logDebug(_S('Discord plugin'),
-                           sprintf( _S('Update lastrun from %s to %s'),
-                               $last_run->format('Y-m-d H:i'), $stop_day->format('Y-m-d H:i') 
-                        ));
-
-                        $this->getConfig()->set('reminder-lastrun', $stop_day->format('Y-m-d H:i'));
-                        $ost->logDebug(_S('Discord plugin'),
-                             _S('Send bye messge') 
-	                );
-                    } else {
+                   } else {
                         $ost->logDebug(_S('Discord plugin'),
                            _S('Need wait to check') 
 	                );
@@ -299,7 +303,7 @@ class DiscordPlugin extends Plugin {
                 //$ost->logDebug(_S('Discord plugin'),
                 //    sprintf(_S('Matching ticket %s for reminder'), $ticket->ticket_id));
                 $fields[$nb]['name'] = sprintf('%s (%s)', $ticket->getEmail()->getName(), $ticket->getEmail());
-                $fields[$nb]['value'] = $ticket->getSubject();
+                $fields[$nb]['value'] = sprintf('%s [show](%s)', $ticket->getSubject(), $cfg->getUrl() . 'scp/tickets.php?id=' . $ticket->getId());
                 $fields[$nb]['inline'] = true;
                 $nb += 1;
             }
